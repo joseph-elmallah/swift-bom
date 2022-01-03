@@ -42,6 +42,9 @@ public struct BOM {
     /// The detected encoding
     public let encoding: String.Encoding
     
+    // Length 4 wich correspond to the longest BOM sequence.
+    public static let maxByteCountToDetectBOM: Int = 4
+    
     // MARK: - Initialization
     
     /// Attempts to parse the BOM of a file.
@@ -71,34 +74,44 @@ public struct BOM {
             throw BOMError.inputStreamFailed(underlayingError: error)
         }
         
-        // Prepare a buffer of length 4. Wich correspond to the longest BOM sequence.
-        var buffer = [UInt8](repeating: 0, count: 4)
+        // Prepare a buffer.
+        var buffer = [UInt8](repeating: 0, count: Self.maxByteCountToDetectBOM)
         // Read the first 4 bytes
         let length = inputStream.read(&buffer, maxLength: buffer.count)
-        switch length {
-            case -1:
-                // An error occurred
-                if let error = inputStream.streamError {
-                    // Throw the error if found
-                    throw BOMError.inputStreamFailed(underlayingError: error)
-                } else {
-                    // If there is no error, just return nil
-                    return nil
-                }
-                
-            case 2...buffer.count:
-                // We have enough bytes to make a prediction
-                self.init(
-                    bom0: buffer[0],
-                    bom1: buffer[1],
-                    bom2: buffer.element(at: 2),
-                    bom3: buffer.element(at: 3)
-                )
-                
-            default:
-                // Not enough bytes in the file to predict the encoding
+        if length == -1 {
+            // An error occurred
+            if let error = inputStream.streamError {
+                // Throw the error if found
+                throw BOMError.inputStreamFailed(underlayingError: error)
+            } else {
+                // If there is no error, just return nil
                 return nil
+            }
         }
+        
+        // We have enough bytes to make a prediction
+        self.init(buffer: buffer)
+    }
+    
+    /// Attempts to parse the BOM from a buffer struct.
+    ///
+    /// The first couple of bytes of the buffer will be analyzed to determin the encoding.
+    /// Getting a `nil` value means that no `BOM` was detected.
+    ///
+    /// - Parameter data: The buffer to detect the encoding
+    public init?(buffer: Array<UInt8>) {
+        // Make sure we have enough bytes to predict the encoding
+        guard buffer.count > 1 else {
+            return nil
+        }
+        
+        // We have enough bytes to make a prediction
+        self.init(
+            bom0: buffer[0],
+            bom1: buffer[1],
+            bom2: buffer.element(at: 2),
+            bom3: buffer.element(at: 3)
+        )
     }
     
     /// Attempts to parse the BOM from a data struct.
