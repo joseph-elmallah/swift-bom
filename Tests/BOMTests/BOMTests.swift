@@ -25,6 +25,7 @@
 
 import XCTest
 import BOM
+import ErrorFramework
 
 final class BOMTests: XCTestCase {
     
@@ -92,7 +93,7 @@ final class BOMTests: XCTestCase {
         do {
             _ = try BOM(fileURL: URL(string: "https://me.josephmallah.com")!)
             XCTFail("Expected an error to be thrown")
-        } catch BOMError.notSupportedURL {
+        } catch is Error<BOM> {
             // Success
         } catch {
             XCTFail("Thrown error is incorrect")
@@ -103,7 +104,7 @@ final class BOMTests: XCTestCase {
         do {
             _ = try BOM(fileURL: getTestFileURL(name: "not_existing_file"))
             XCTFail("Expected an error to be thrown")
-        } catch BOMError.inputStreamFailed {
+        } catch is Error<BOM> {
             // Success
         } catch {
             XCTFail("Thrown error is incorrect")

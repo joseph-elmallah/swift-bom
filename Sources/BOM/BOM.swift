@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 import Foundation
+import ErrorFramework
 
 /// Byte ordered mark (BOM)
 ///
@@ -35,7 +36,17 @@ import Foundation
 /// 3. Which Unicode character encoding is used
 ///
 /// - Note: More information can be found on [Wikipedia: Byte order mark](https://en.wikipedia.org/wiki/Byte_order_mark)
-public struct BOM {
+public struct BOM: ErrorDomain {
+    
+    // MARK: - Error
+    public typealias FailureType = BOMError
+    
+    public enum BOMError: Int, ErrorDomainFailure {
+        /// Errors related to the stream opened for a file
+        case streamError = 0
+    }
+    
+    public static var errorDomain: String { "BOM" }
     
     // MARK: - Properties
     
@@ -58,7 +69,7 @@ public struct BOM {
         // Create an input stream with the url.
         guard let inputStream = InputStream(url: fileURL) else {
             // The stream beign nil indicates that the passed URL is not supported.
-            throw BOMError.notSupportedURL(url: fileURL)
+            throw Error<BOM>(.streamError, underlyingError: nil, errorDescription: "Cannot create stream", failureReason: "The URL is not supported: \(fileURL)", helpAnchor: "Chose a URL pointing to a resource on disk.")
         }
         // Attempt to open the stream.
         inputStream.open()
@@ -71,7 +82,7 @@ public struct BOM {
         // Check if there is an error with opening the stream
         if let error = inputStream.streamError {
             // Throw the error if found
-            throw BOMError.inputStreamFailed(underlayingError: error)
+            throw Error<BOM>(.streamError, underlyingError: error, errorDescription: "Opening the stream failed", failureReason: error.localizedDescription, helpAnchor: "Check the underlying error for more details")
         }
         
         // Prepare a buffer.
@@ -82,7 +93,7 @@ public struct BOM {
             // An error occurred
             if let error = inputStream.streamError {
                 // Throw the error if found
-                throw BOMError.inputStreamFailed(underlayingError: error)
+                throw Error<BOM>(.streamError, underlyingError: error, errorDescription: "Reading the stream failed", failureReason: error.localizedDescription, helpAnchor: "Check the underlying error for more details")
             } else {
                 // If there is no error, just return nil
                 return nil
@@ -157,22 +168,35 @@ public struct BOM {
     ///
     /// As an example: The length of a UTF-8 BOM is 3 bytes.
     public var length: Int {
-        switch self.encoding {
+        guard let length = Self.length(for: encoding) else {
+            assertionFailure("Unsupported Encoding")
+            return 0
+        }
+        return length
+    }
+    
+    /// Get length of the `BOM` in bytes for a given Encoding.
+    ///
+    /// As an example: The length of a UTF-8 BOM is 3 bytes.
+    ///
+    /// - Parameter encoding: The given Encoding
+    /// - Returns: The length of the `BOM` in bytes for a given Encoding.
+    public static func length(for encoding: String.Encoding) -> Int? {
+        switch encoding {
             case .utf8:
                 return 3
-            case .utf16BigEndian, .utf16LittleEndian:
+            case .utf16BigEndian, .utf16LittleEndian, .utf16, .unicode:
                 return 2
-            case .utf32BigEndian, .utf32LittleEndian:
+            case .utf32BigEndian, .utf32LittleEndian, .utf32:
                 return 4
             default:
-                assertionFailure("Unsupported Encoding")
-                return 0
+                return nil
         }
     }
     
 }
 
-extension Collection where Index: BinaryInteger {
+private extension Collection where Index: BinaryInteger {
     func element(at index: Index) -> Element? {
         guard index < count else {
             return nil

@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "ErrorFramework",
+        "repositoryURL": "https://github.com/joseph-elmallah/swift-error-framework",
+        "state": {
+          "branch": null,
+          "revision": "fd3736954df526a8afd10b63de1a50e99994ffe5",
+          "version": "1.0.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
