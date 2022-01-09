@@ -41,6 +41,7 @@ public struct BOM: ErrorDomain {
     // MARK: - Error
     public typealias FailureType = BOMError
     
+    /// Errors thrown from the BOM
     public enum BOMError: Int, ErrorDomainFailure {
         /// Errors related to the stream opened for a file
         case streamError = 0
